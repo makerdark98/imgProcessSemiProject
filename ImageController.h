@@ -67,6 +67,7 @@ namespace imgctrl {
 
 		std::vector< std::pair<unsigned int,unsigned int> > getHarrisCorner(const Image& image) const;
 
+		Image getMarkedImage(const Image& original, std::vector<std::pair<unsigned int, unsigned int> > &markPositions, unsigned int markSize = 5);
 
 	};
 

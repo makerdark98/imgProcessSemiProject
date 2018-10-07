@@ -140,6 +140,22 @@ std::vector<std::pair<unsigned int,unsigned int>> imgctrl::ImageController::getH
 	return result;
 }
 
+imgctrl::Image imgctrl::ImageController::getMarkedImage(const Image & original, std::vector<std::pair<unsigned int, unsigned int>>& markPositions, unsigned int markSize)
+{
+	Image result = original;
+	std::pair<size_t, size_t> size = result.getSize();
+	for (std::pair<unsigned int, unsigned int> markPosition : markPositions) {
+		for (unsigned int dx = 0; dx < markSize && markPosition.first + dx < size.first; dx++) {
+			for (unsigned int dy = 0; dy < markSize && markPosition.second + dy < size.first; dy++) {
+				result.m_image[markPosition.first + dx][markPosition.second + dy].setRed(255);
+				result.m_image[markPosition.first + dx][markPosition.second + dy].setGreen(0);
+				result.m_image[markPosition.first + dx][markPosition.second + dy].setBlue(0);
+			}
+		}
+	}
+	return result;
+}
+
 imgctrl::Image::Image(std::vector<std::vector<Color>> image)
 {
 	m_image = image;
