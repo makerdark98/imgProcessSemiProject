@@ -16,6 +16,7 @@ namespace imgctrl {
 		static const uint8_t kBlueIdx = 0;
 
 	public:
+		friend class ImageController;
 		Color();
 		Color(BYTE r, BYTE g, BYTE b);
 		~Color();
@@ -27,9 +28,6 @@ namespace imgctrl {
 		BYTE getRed() const;
 		BYTE getGreen() const;
 		BYTE getBlue() const;
-
-		friend class ImageController;
-
 	};
 
 	class Image {
@@ -38,14 +36,14 @@ namespace imgctrl {
 		Image(std::vector< std::vector<Color> > image);
 
 	public:
-		~Image();
 		static Image load(std::string filename);
+		friend class ImageController;
+		~Image();
 		void save(std::string filename) const;
 
+		std::pair<size_t, size_t> getSize() const;
 		size_t getHeight() const;
 		size_t getWidth() const;
-		std::pair<size_t, size_t> getSize() const;
-		friend class ImageController;
 
 		operator cv::Mat() const;
 	};
@@ -57,16 +55,18 @@ namespace imgctrl {
 		BYTE binaryBlack = 0;
 		BYTE binaryWhite = 255;
 		
-
 	public:
 		ImageController();
 		~ImageController();
 
 		BYTE getThreshold() const;
 		void setThreshold(const BYTE& threshold);
+
 		Image getBinarization(const Image& original) const;
 		Image getGrayScale(const Image& original) const;
-		std::vector< std::pair<int, int> > getHarrisCorner(const Image& image) const;
+
+		std::vector< std::pair<unsigned int,unsigned int> > getHarrisCorner(const Image& image) const;
+
 
 	};
 

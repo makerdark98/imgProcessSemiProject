@@ -7,7 +7,6 @@ imgctrl::ImageController::ImageController()
 {
 }
 
-
 imgctrl::ImageController::~ImageController()
 {
 }
@@ -59,9 +58,9 @@ imgctrl::Image imgctrl::ImageController::getGrayScale(const Image & original) co
 	return result;
 }
 
-std::vector<std::pair<int, int>> imgctrl::ImageController::getHarrisCorner(const Image & image) const
+std::vector<std::pair<unsigned int,unsigned int>> imgctrl::ImageController::getHarrisCorner(const Image & image) const
 {
-	std::vector<std::pair<int, int> > result;
+	std::vector<std::pair<unsigned int,unsigned int> > result;
 	double tx, ty;
 	std::pair<size_t, size_t> size = image.getSize();
 	std::vector<std::vector<double> > dx2(size.first, std::vector<double>(size.second, 0));
@@ -159,7 +158,7 @@ imgctrl::Image imgctrl::Image::load(std::string filename)
 	std::vector< std::vector<Color> > data(size.width, std::vector<Color>(size.height));
 	for (int i = 0; i < size.width; i++) {
 		for (int j = 0; j < size.height; j++) {
-			cv::Vec3b currentColor = cvImage.at<cv::Vec3b>(cv::Point(i, j));
+			cv::Vec3b& currentColor = cvImage.at<cv::Vec3b>(cv::Point(i, j));
 			data[i][j].setRed(currentColor[2]);
 			data[i][j].setGreen(currentColor[1]);
 			data[i][j].setBlue(currentColor[0]);

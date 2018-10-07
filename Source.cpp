@@ -7,10 +7,13 @@ using namespace cv;
 using namespace std;
 
 int main(int argc, const char** argv) {
-	imgctrl::Image image = imgctrl::Image::load("C://1.jpg");
+	imgctrl::Image image = imgctrl::Image::load("C://star.jpg");
 	imgctrl::ImageController imgController;
 	//image = imgController.getGrayScale(image);
-	image = imgController.getBinarization(image);
+	//image = imgController.getBinarization(image);
+	image = imgController.getGrayScale(image);
+	auto corners = imgController.getHarrisCorner(image);
+	image = imgController.getMarkedImage(image, corners);
 	namedWindow("Test1", WINDOW_AUTOSIZE);
 	imshow("Test1", Mat(image));
 
