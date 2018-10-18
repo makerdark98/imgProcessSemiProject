@@ -1,8 +1,10 @@
 #pragma once
+#define _USE_MATH_DEFINES
+#include <cmath>
 #include <vector>
-#include "opencv2/highgui/highgui.hpp"
 #include <algorithm>
 #include <atlimage.h>
+#include "opencv2/highgui/highgui.hpp"
 
 namespace imgctrl {
 	using COLORDATA = BYTE[3];
@@ -16,9 +18,8 @@ namespace imgctrl {
 		static const uint8_t kBlueIdx = 0;
 
 	public:
-		friend class ImageController;
 		Color();
-		Color(BYTE r, BYTE g, BYTE b);
+		Color(const BYTE& r, const BYTE& g, const BYTE& b);
 		~Color();
 
 		void setRed(BYTE r);
@@ -33,42 +34,56 @@ namespace imgctrl {
 	class Image {
 	private:
 		std::vector< std::vector<Color> > m_image;
-		Image(std::vector< std::vector<Color> > image);
+		Image(const std::vector< std::vector<Color> >& image);
 
 	public:
-		static Image load(std::string filename);
-		friend class ImageController;
+		static Image load(const std::string& filename);
+		Image(std::pair<size_t, size_t> size);
 		~Image();
-		void save(std::string filename) const;
+		void save(const std::string& filename) const;
 
 		std::pair<size_t, size_t> getSize() const;
 		size_t getHeight() const;
 		size_t getWidth() const;
 
+		std::vector<Color>& operator[](const unsigned int& idx);
+		const std::vector<Color>& operator[](const unsigned int& idx) const;
 		operator cv::Mat() const;
 	};
+
+	class LineParam {
+	public:
+		double rho;
+		double ang;
+		LineParam();
+		LineParam(std::initializer_list<double> data);
+		~LineParam();
+	};
+
 
 	class ImageController
 	{
 	private:
-		BYTE threshold = 128;
+		int threshold = 128;
 		BYTE binaryBlack = 0;
 		BYTE binaryWhite = 255;
-		
+
 	public:
 		ImageController();
 		~ImageController();
 
 		BYTE getThreshold() const;
-		void setThreshold(const BYTE& threshold);
+		void setThreshold(const int& threshold);
 
 		Image getBinarization(const Image& original) const;
+		Image getBlur(const Image& original) const;
+		Image getSharpening(const Image& original) const;
 		Image getGrayScale(const Image& original) const;
+		Image getConvolution(const Image& original, const std::vector<std::vector<double> > &filter) const;
+		Image getMarkedImage(const Image& original, const std::vector<std::pair<unsigned int, unsigned int> > &markPositions, const unsigned int& markSize = 5);
 
 		std::vector< std::pair<unsigned int,unsigned int> > getHarrisCorner(const Image& image) const;
-
-		Image getMarkedImage(const Image& original, std::vector<std::pair<unsigned int, unsigned int> > &markPositions, unsigned int markSize = 5);
-
+		std::vector< imgctrl::LineParam> getHoughLine(const Image& image) const;
 	};
 
 }

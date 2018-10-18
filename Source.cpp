@@ -6,18 +6,42 @@
 using namespace cv;
 using namespace std;
 
-int main(int argc, const char** argv) {
-	imgctrl::Image image = imgctrl::Image::load("C://star.jpg");
+void processHoughLine(string filename) {
+	imgctrl::Image image = imgctrl::Image::load(filename);
+	filename = filename + "Line";
 	imgctrl::ImageController imgController;
-	//image = imgController.getGrayScale(image);
-	//image = imgController.getBinarization(image);
-	image = imgController.getGrayScale(image);
+	vector<vector<double> > filter = {
+		{0, 0, -1},
+		{0, 1, 0},
+		{0, 0, 0}
+	};
+	image = imgController.getConvolution(image, filter);
+	auto lines = imgController.getHoughLine(image);
+	cout << filename << endl;
+	for (auto line : lines) {
+		cout << line.rho << " " << line.ang << endl;
+	}
+	namedWindow(filename, WINDOW_AUTOSIZE);
+	imshow(filename, Mat(image));
+}
+
+void processCorner(string filename) {
+	imgctrl::Image image = imgctrl::Image::load(filename);
+	filename = filename + "Corner";
+	imgctrl::ImageController imgController;
+	imgController.setThreshold(20000);
 	auto corners = imgController.getHarrisCorner(image);
 	image = imgController.getMarkedImage(image, corners);
-	namedWindow("Test1", WINDOW_AUTOSIZE);
-	imshow("Test1", Mat(image));
+	namedWindow(filename, WINDOW_AUTOSIZE);
+	imshow(filename, Mat(image));
 
+}
+
+int main(int argc, const char** argv) {
+	//processHoughLine("C://triangle.jpg");
+	//processHoughLine("C://star.jpg");
+	processCorner("C://triangle.jpg");
+	processCorner("C://star.jpg");
 	waitKey(0);
-
 	return 0;
 }

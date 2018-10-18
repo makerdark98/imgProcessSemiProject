@@ -1,4 +1,5 @@
 #include "ImageController.h"
+#include "opencv2/imgproc/imgproc.hpp"
 #include "opencv2/core/core.hpp"
 #include "opencv2/highgui/highgui.hpp"
 
@@ -16,7 +17,7 @@ BYTE imgctrl::ImageController::getThreshold() const
 	return threshold;
 }
 
-void imgctrl::ImageController::setThreshold(const BYTE & threshold)
+void imgctrl::ImageController::setThreshold(const int & threshold)
 {
 	this->threshold = threshold;
 }
@@ -28,15 +29,35 @@ imgctrl::Image imgctrl::ImageController::getBinarization(const Image & original)
 	for (size_t i = 0; i < size.first; i++) {
 		for (size_t j = 0; j < size.second; j++) {
 			BYTE newColor = this->binaryWhite;
-			if (result.m_image[i][j].getRed() < this->threshold) {
+			if (result[i][j].getRed() < this->threshold) {
 				newColor = this->binaryBlack;
 			}
-			result.m_image[i][j].setRed(newColor);
-			result.m_image[i][j].setGreen(newColor);
-			result.m_image[i][j].setBlue(newColor);
+			result[i][j].setRed(newColor);
+			result[i][j].setGreen(newColor);
+			result[i][j].setBlue(newColor);
 		}
 	}
 	return result;
+}
+
+imgctrl::Image imgctrl::ImageController::getBlur(const Image & original) const
+{
+	std::vector<std::vector<double> > filter = {
+		{1./9, 1./9, 1./9},
+		{1./9, 1./9, 1./9},
+		{1./9, 1./9, 1./9}
+	};
+	return getConvolution(original, filter);
+}
+
+imgctrl::Image imgctrl::ImageController::getSharpening(const Image & original) const
+{
+	std::vector<std::vector<double> > filter = {
+		{-1, -1, -1},
+		{-1, 9, -1},
+		{-1, -1, -1}
+	};
+	return getConvolution(original, filter);
 }
 
 imgctrl::Image imgctrl::ImageController::getGrayScale(const Image & original) const
@@ -46,13 +67,46 @@ imgctrl::Image imgctrl::ImageController::getGrayScale(const Image & original) co
 	for (size_t i = 0; i < size.first; i++) {
 		for (size_t j = 0; j < size.second; j++) {
 			float r, g, b;
-			r = (float)result.m_image[i][j].getRed();
-			g = (float)result.m_image[i][j].getGreen();
-			b = (float)result.m_image[i][j].getBlue();
-			float gray = min(255.f, max(0.f, 0.2126f * r + 0.7152f * g + 0.0722f * b));
-			result.m_image[i][j].setRed((BYTE)gray);
-			result.m_image[i][j].setGreen((BYTE)gray);
-			result.m_image[i][j].setBlue((BYTE)gray);
+			r = (float)result[i][j].getRed();
+			g = (float)result[i][j].getGreen();
+			b = (float)result[i][j].getBlue();
+			float gray = std::min(255.f, std::max(0.f, 0.2126f * r + 0.7152f * g + 0.0722f * b));
+			result[i][j].setRed((BYTE)gray);
+			result[i][j].setGreen((BYTE)gray);
+			result[i][j].setBlue((BYTE)gray);
+		}
+	}
+	return result;
+}
+
+imgctrl::Image imgctrl::ImageController::getConvolution(const Image & original, const std::vector<std::vector<double>>& filter) const
+{
+	assert(filter.size() != 0);
+	std::pair<size_t, size_t> imageSize = original.getSize();
+	Image result(imageSize);
+	std::pair<unsigned int, unsigned int> filterSize = { filter.size(), filter[0].size() };
+	unsigned int halfX = filterSize.first / 2;
+	unsigned int halfY = filterSize.second / 2;
+	for (unsigned int i = halfX; i < imageSize.first-halfX; i++) {
+		for (unsigned int j = halfY; j < imageSize.second-halfY; j++) {
+
+			double currentColorRed = 0.;
+			double currentColorGreen = 0.; 
+			double currentColorBlue = 0.;
+			for (int x = 0; x < filterSize.first; x++) {
+				for (int y = 0; y < filterSize.second; y++) {
+					currentColorRed += filter[x][y] * original[i-halfX+x][j-halfY+y].getRed();
+					currentColorGreen += filter[x][y] * original[i-halfX+x][j-halfY+y].getGreen();
+					currentColorBlue += filter[x][y] * original[i-halfX+x][j-halfY+y].getBlue();
+				}
+			}
+			currentColorRed = std::min(255., std::max(0., currentColorRed));
+			currentColorGreen = std::min(255., std::max(0., currentColorGreen));
+			currentColorBlue = std::min(255., std::max(0., currentColorBlue));
+
+			result[i][j].setRed(currentColorRed);
+			result[i][j].setGreen(currentColorGreen);
+			result[i][j].setBlue(currentColorBlue);
 		}
 	}
 	return result;
@@ -66,13 +120,12 @@ std::vector<std::pair<unsigned int,unsigned int>> imgctrl::ImageController::getH
 	std::vector<std::vector<double> > dx2(size.first, std::vector<double>(size.second, 0));
 	std::vector<std::vector<double> > dy2(size.first, std::vector<double>(size.second, 0));
 	std::vector<std::vector<double> > dxy(size.first, std::vector<double>(size.second, 0));
-
 	for (size_t i = 1; i < size.first-1; i++) {
 		for (size_t j = 1; j < size.second-1; j++) {
-			tx = ((double)image.m_image[i - 1][j + 1].getRed() + (double)image.m_image[i][j + 1].getRed() + (double)image.m_image[i + 1][j + 1].getRed()
-				- (double)image.m_image[i - 1][j - 1].getRed() - (double)image.m_image[i][j - 1].getRed() - (double)image.m_image[i + 1][j - 1].getRed()) / 6.0;
-			ty = ((double)image.m_image[i + 1][j - 1].getRed() + (double)image.m_image[i + 1][j].getRed() + (double)image.m_image[i + 1][j + 1].getRed()
-				- (double)image.m_image[i - 1][j - 1].getRed() + (double)image.m_image[i - 1][j].getRed() - (double)image.m_image[i - 1][j + 1].getRed()) / 6.0;
+			tx = ((double)image[i - 1][j + 1].getRed() + (double)image[i][j + 1].getRed() + (double)image[i + 1][j + 1].getRed()
+				- (double)image[i - 1][j - 1].getRed() - (double)image[i][j - 1].getRed() - (double)image[i + 1][j - 1].getRed()) / 6.0;
+			ty = ((double)image[i + 1][j - 1].getRed() + (double)image[i + 1][j].getRed() + (double)image[i + 1][j + 1].getRed()
+				- (double)image[i - 1][j - 1].getRed() + (double)image[i - 1][j].getRed() - (double)image[i - 1][j + 1].getRed()) / 6.0;
 
 			dx2[i][j] = tx*tx;
 			dy2[i][j] = ty*ty;
@@ -125,13 +178,20 @@ std::vector<std::pair<unsigned int,unsigned int>> imgctrl::ImageController::getH
 		}
 	}
 
-	for (size_t i = 2; i < size.first - 2; i++) {
-		for (size_t j = 2; j < size.second - 2; j++) {
-			if (crf[i][j] > threshold &&
-				crf[i][j] > crf[i - 1][j] && crf[i][j] > crf[i - 1][j + 1] &&
-				crf[i][j] > crf[i][j + 1] && crf[i][j] > crf[i + 1][j + 1] &&
-				crf[i][j] > crf[i + 1][j] && crf[i][j] > crf[i + 1][j - 1] &&
-				crf[i][j] > crf[i][j - 1] && crf[i][j] > crf[i - 1][j - 1]){
+	auto isLocalMaximum = [&crf, &result, &size](const size_t& x, const size_t& y, const int& range=50)->bool{
+		for (int i = -range; i <= range; i++) {
+			for (int j = -range; j <= range; j++) {
+				if (i + x < 0 || i + x >= size.first || j + y < 0 || j + y >= size.second) continue;
+				if (i == 0 && j == 0) continue;
+				if (crf[i + x][j + y] - crf[x][y] >= FLT_EPSILON) return false;
+			}
+		}
+		return true;
+	};
+
+	for (size_t i = 0; i < size.first; i++) {
+		for (size_t j = 0; j < size.second; j++) {
+			if (crf[i][j] > threshold && isLocalMaximum(i,j)){
 				result.push_back({ i,j });
 			}
 		}
@@ -140,23 +200,73 @@ std::vector<std::pair<unsigned int,unsigned int>> imgctrl::ImageController::getH
 	return result;
 }
 
-imgctrl::Image imgctrl::ImageController::getMarkedImage(const Image & original, std::vector<std::pair<unsigned int, unsigned int>>& markPositions, unsigned int markSize)
+std::vector<imgctrl::LineParam> imgctrl::ImageController::getHoughLine(const Image & image) const
 {
-	Image result = original;
-	std::pair<size_t, size_t> size = result.getSize();
-	for (std::pair<unsigned int, unsigned int> markPosition : markPositions) {
-		for (unsigned int dx = 0; dx < markSize && markPosition.first + dx < size.first; dx++) {
-			for (unsigned int dy = 0; dy < markSize && markPosition.second + dy < size.first; dy++) {
-				result.m_image[markPosition.first + dx][markPosition.second + dy].setRed(255);
-				result.m_image[markPosition.first + dx][markPosition.second + dy].setGreen(0);
-				result.m_image[markPosition.first + dx][markPosition.second + dy].setBlue(0);
+	Image grayImage = getGrayScale(image);
+	std::vector<LineParam> result;
+	std::pair<size_t, size_t> size = image.getSize();
+	int num_rho = (int)(sqrt((double)size.first*size.first + size.second*size.second) * 2);
+	int num_ang = 360;
+
+	std::vector<double> tsin(num_ang), tcos(num_ang);
+	for (int i = 0; i < num_ang; i++) {
+		tsin[i] = (double)sin(i*M_PI / num_ang);
+		tcos[i] = (double)cos(i*M_PI / num_ang);
+	}
+
+	std::vector<std::vector<int> > accumulation(num_rho, std::vector<int>(num_ang, 0));
+
+	int m, n;
+	for (int i = 0; i < size.first; i++) {
+		for (int j = 0; j < size.second; j++) {
+			if (grayImage[i][j].getRed() > 128){ 
+				for (int n = 0; n < num_ang; n++) {
+					m = (int)floor(i*tsin[n] + j*tcos[n] + 0.5);
+					m += (num_rho / 2);
+
+					accumulation[m][n]++;
+				}
+			}
+		}
+	}
+	auto isLocalMaximum = [&accumulation, &result, &num_rho, &num_ang](const size_t& rho, const size_t& ang, const int& range=5)->bool{
+		for (int i = -range; i <= range; i++) {
+			for (int j = -range; j <= range; j++) {
+				if (i + rho < 0 || i + rho >= num_rho || j + ang < 0 || j + ang >= num_ang ) continue;
+				if (i == 0 && j == 0) continue;
+				if (accumulation[i + rho][j + ang] - accumulation[rho][ang] >= FLT_EPSILON) return false;
+			}
+		}
+		return true;
+	};
+	for (m = 1; m < num_rho-1; m++) {
+		for (n = 0; n < num_ang-1; n++) {
+			if (accumulation[m][n] > threshold &&
+				isLocalMaximum(m, n) ) {
+				result.push_back({ (double)m - (num_rho / 2), (double)n*180.0 / num_ang });
 			}
 		}
 	}
 	return result;
 }
 
-imgctrl::Image::Image(std::vector<std::vector<Color>> image)
+imgctrl::Image imgctrl::ImageController::getMarkedImage(const Image & original, const std::vector<std::pair<unsigned int, unsigned int>>& markPositions, const unsigned int& markSize)
+{
+	Image result = original;
+	std::pair<size_t, size_t> size = result.getSize();
+	for (std::pair<unsigned int, unsigned int> markPosition : markPositions) {
+		for (unsigned int dx = 0; dx < markSize && markPosition.first + dx < size.first; dx++) {
+			for (unsigned int dy = 0; dy < markSize && markPosition.second + dy < size.first; dy++) {
+				result[markPosition.first + dx][markPosition.second + dy].setRed(255);
+				result[markPosition.first + dx][markPosition.second + dy].setGreen(0);
+				result[markPosition.first + dx][markPosition.second + dy].setBlue(0);
+			}
+		}
+	}
+	return result;
+}
+
+imgctrl::Image::Image(const std::vector<std::vector<Color>> &image)
 {
 	m_image = image;
 }
@@ -166,10 +276,9 @@ imgctrl::Image::~Image()
 }
 
 
-imgctrl::Image imgctrl::Image::load(std::string filename)
+imgctrl::Image imgctrl::Image::load(const std::string& filename)
 {
 	cv::Mat cvImage = cv::imread(filename, CV_LOAD_IMAGE_COLOR);
-	int type = cvImage.type();
 	cv::Size size = cvImage.size();
 	std::vector< std::vector<Color> > data(size.width, std::vector<Color>(size.height));
 	for (int i = 0; i < size.width; i++) {
@@ -183,7 +292,12 @@ imgctrl::Image imgctrl::Image::load(std::string filename)
 	return Image(data);
 }
 
-void imgctrl::Image::save(std::string filename) const
+imgctrl::Image::Image(std::pair<size_t, size_t> size)
+{
+	m_image.assign(size.first, std::vector<Color>(size.second));
+}
+
+void imgctrl::Image::save(const std::string& filename) const
 {
 }
 
@@ -196,6 +310,16 @@ size_t imgctrl::Image::getWidth() const
 {
 	if (m_image.size() == 0) return 0;
 	return m_image[0].size();
+}
+
+std::vector<imgctrl::Color>& imgctrl::Image::operator[](const unsigned int& idx)
+{
+	return m_image[idx];
+}
+
+const std::vector<imgctrl::Color>& imgctrl::Image::operator[](const unsigned int& idx) const
+{
+	return m_image[idx];
 }
 
 std::pair<size_t, size_t> imgctrl::Image::getSize() const
@@ -225,7 +349,7 @@ imgctrl::Color::Color() {
 	setBlue(0);
 }
 
-imgctrl::Color::Color(BYTE r, BYTE g, BYTE b)
+imgctrl::Color::Color(const BYTE& r, const BYTE& g, const BYTE& b)
 {
 	setRed(r);
 	setGreen(g);
@@ -264,4 +388,20 @@ BYTE imgctrl::Color::getGreen() const
 BYTE imgctrl::Color::getBlue() const
 {
 	return m_color[kBlueIdx];
+}
+
+imgctrl::LineParam::LineParam()
+{
+}
+
+imgctrl::LineParam::LineParam(std::initializer_list<double> data)
+{
+	assert(data.size() == 2);
+	const double* ptr = data.begin();
+	this->rho = ptr[0];
+	this->ang = ptr[1];
+}
+
+imgctrl::LineParam::~LineParam()
+{
 }
