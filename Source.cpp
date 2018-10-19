@@ -6,42 +6,54 @@
 using namespace cv;
 using namespace std;
 
-void processHoughLine(string filename) {
-	imgctrl::Image image = imgctrl::Image::load(filename);
-	filename = filename + "Line";
+bool isTriangle(const imgctrl::Image& image);
+int getNumOfEdges(const imgctrl::Image& image);
+
+int main(int argc, const char** argv) {
+	imgctrl::Image image = imgctrl::Image::load("C://triangle.jpg");
+	//imgctrl::Image image = imgctrl::Image::load("C://star.jpg");
+	cout << (isTriangle(image)? "Triangle" : "Star") << endl;
+	return 0;
+}
+
+bool isTriangle(const imgctrl::Image& image) {
+	return getNumOfEdges(image) <= 4;
+}
+
+int getNumOfEdges(const imgctrl::Image& image) {
 	imgctrl::ImageController imgController;
-	vector<vector<double> > filter = {
-		{0, 0, -1},
-		{0, 1, 0},
-		{0, 0, 0}
+	vector<vector<double> > filters[] = {		// Roberts mask
+		{ {0, 0, -1}, {0, 1, 0}, {0, 0, 0} },
+		{ {-1, 0, 0}, {0, 1, 0}, {0, 0, 0} },
+		{ {0, 0, 0}, {0, 1, 0}, {-1, 0, 0} },
+		{ {0, 0, 0}, {0, 1, 0}, {0, 0, -1} },
 	};
-	image = imgController.getConvolution(image, filter);
-	auto lines = imgController.getHoughLine(image);
-	cout << filename << endl;
+
+	// Use multiple mask and composite to detect all direction
+	imgctrl::Image maskedImage(image.getSize());
+	for (int i = 0; i < 4; i++){
+		auto tmpImage = imgController.getConvolution(image, filters[i]);
+		maskedImage = imgController.getCompositiion(maskedImage, tmpImage);
+	}
+
+	// Detect lines
+	auto lines = imgController.getHoughLine(maskedImage);
+
+	// for debug, print data of lines
+	/*
 	for (auto line : lines) {
 		cout << line.rho << " " << line.ang << endl;
 	}
-	namedWindow(filename, WINDOW_AUTOSIZE);
-	imshow(filename, Mat(image));
-}
+	*/
 
-void processCorner(string filename) {
-	imgctrl::Image image = imgctrl::Image::load(filename);
-	filename = filename + "Corner";
-	imgctrl::ImageController imgController;
-	imgController.setThreshold(20000);
-	auto corners = imgController.getHarrisCorner(image);
-	image = imgController.getMarkedImage(image, corners);
-	namedWindow(filename, WINDOW_AUTOSIZE);
-	imshow(filename, Mat(image));
-
-}
-
-int main(int argc, const char** argv) {
-	//processHoughLine("C://triangle.jpg");
-	//processHoughLine("C://star.jpg");
-	processCorner("C://triangle.jpg");
-	processCorner("C://star.jpg");
+	// Draw lines and Display
+	/*
+	auto displayImage = imgController.getLinedImage(image, lines);
+	namedWindow("Display", WINDOW_AUTOSIZE);
+	imshow("Display", Mat(displayImage));
 	waitKey(0);
-	return 0;
+	*/
+
+	return lines.size();
 }
+

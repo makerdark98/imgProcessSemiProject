@@ -16,7 +16,6 @@ namespace imgctrl {
 		COLORBGR m_color;
 
 	public:
-
 		static const uint8_t kRedIdx = 2;
 		static const uint8_t kGreenIdx = 1;
 		static const uint8_t kBlueIdx = 0;
@@ -28,6 +27,7 @@ namespace imgctrl {
 		void setRed(const COLORDATA& r);
 		void setGreen(const COLORDATA& g);
 		void setBlue(const COLORDATA& b);
+		void setColor(const COLORDATA& r, const COLORDATA& g, const COLORDATA& b);
 
 		COLORDATA getRed() const;
 		COLORDATA getGreen() const;
@@ -61,6 +61,7 @@ namespace imgctrl {
 	public:
 		double rho;
 		double ang;
+
 		LineParam();
 		LineParam(std::initializer_list<double> data);
 		~LineParam();
@@ -71,7 +72,7 @@ namespace imgctrl {
 	class ImageController
 	{
 	private:
-		int m_threshold = 128;
+		int m_threshold = 128;	// 128 is for binarization, if you use others, must set threshhold (e.g 20000)
 		static const COLORDATA kBlackBinary = 0;
 		static const COLORDATA kWhiteBinary = 255;
 
@@ -88,6 +89,8 @@ namespace imgctrl {
 		Image getGrayScale(const Image& original) const;
 		Image getConvolution(const Image& original, const std::vector<std::vector<double> > &filter) const;
 		Image getMarkedImage(const Image& original, const std::vector<std::pair<unsigned int, unsigned int> > &markPositions, const unsigned int& markSize = 5);
+		Image getCompositiion(const Image& firstImage, const Image& secondImage) const;
+		Image getLinedImage(const Image& original, const std::vector<imgctrl::LineParam>& lines) const;
 
 		std::vector< std::pair<unsigned int,unsigned int> > getHarrisCorner(const Image& image) const;
 		std::vector< imgctrl::LineParam> getHoughLine(const Image& image) const;

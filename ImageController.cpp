@@ -32,9 +32,7 @@ imgctrl::Image imgctrl::ImageController::getBinarization(const Image & original)
 			if (result[i][j].getRed() < this->m_threshold) {
 				newColor = this->kBlackBinary;
 			}
-			result[i][j].setRed(newColor);
-			result[i][j].setGreen(newColor);
-			result[i][j].setBlue(newColor);
+			result[i][j].setColor(newColor, newColor, newColor);
 		}
 	}
 	return result;
@@ -73,9 +71,7 @@ imgctrl::Image imgctrl::ImageController::getGrayScale(const Image & original) co
 			b = (float)result[i][j].getBlue();
 
 			float gray = std::min(255.f, std::max(0.f, 0.2126f * r + 0.7152f * g + 0.0722f * b));
-			result[i][j].setRed((BYTE)gray);
-			result[i][j].setGreen((BYTE)gray);
-			result[i][j].setBlue((BYTE)gray);
+			result[i][j].setColor(gray, gray, gray);
 		}
 	}
 
@@ -90,32 +86,30 @@ imgctrl::Image imgctrl::ImageController::getConvolution(const Image & original, 
 	const std::pair<size_t, size_t> imageSize = original.getSize();
 	Image result(imageSize);
 
-	const std::pair<unsigned int, unsigned int> filterSize = { filter.size(), filter[0].size() };
+	const std::pair<size_t, size_t> filterSize = { filter.size(), filter[0].size() };
 	unsigned int halfX = filterSize.first / 2;
 	unsigned int halfY = filterSize.second / 2;
 
 	for (unsigned int i = halfX; i < imageSize.first-halfX; i++) {
 		for (unsigned int j = halfY; j < imageSize.second-halfY; j++) {
-			double currentColorRed = 0.;
-			double currentColorGreen = 0.; 
-			double currentColorBlue = 0.;
+			double r = 0.;
+			double g = 0.; 
+			double b = 0.;
 
 			for (unsigned int x = 0; x < filterSize.first; x++) {
 				for (unsigned int y = 0; y < filterSize.second; y++) {
-					currentColorRed += filter[x][y] * original[i-halfX+x][j-halfY+y].getRed();
-					currentColorGreen += filter[x][y] * original[i-halfX+x][j-halfY+y].getGreen();
-					currentColorBlue += filter[x][y] * original[i-halfX+x][j-halfY+y].getBlue();
+					r += filter[x][y] * original[i-halfX+x][j-halfY+y].getRed();
+					g += filter[x][y] * original[i-halfX+x][j-halfY+y].getGreen();
+					b += filter[x][y] * original[i-halfX+x][j-halfY+y].getBlue();
 				}
 			}
 
 			// Caution! Overflow Check
-			currentColorRed = std::min(255., std::max(0., currentColorRed));
-			currentColorGreen = std::min(255., std::max(0., currentColorGreen));
-			currentColorBlue = std::min(255., std::max(0., currentColorBlue));
+			r = std::min(255., std::max(0., r));
+			g = std::min(255., std::max(0., g));
+			b = std::min(255., std::max(0., b));
 
-			result[i][j].setRed((COLORDATA)currentColorRed);
-			result[i][j].setGreen((COLORDATA)currentColorGreen);
-			result[i][j].setBlue((COLORDATA)currentColorBlue);
+			result[i][j].setColor(r, g, b);
 		}
 	}
 	return result;
@@ -123,7 +117,11 @@ imgctrl::Image imgctrl::ImageController::getConvolution(const Image & original, 
 
 std::vector<std::pair<unsigned int,unsigned int>> imgctrl::ImageController::getHarrisCorner(const Image & image) const
 {
-	/* Please See HarrisCorner Algorithm */
+	/* 
+	Please See HarrisCorner Algorithm 
+	Caution! It does not always detect corner
+	In this assignment, I have not use this algorithm 
+	*/
 
 	std::vector<std::pair<unsigned int,unsigned int> > result;
 	double tx, ty;
@@ -221,6 +219,11 @@ std::vector<std::pair<unsigned int,unsigned int>> imgctrl::ImageController::getH
 
 std::vector<imgctrl::LineParam> imgctrl::ImageController::getHoughLine(const Image & image) const
 {
+	/* 
+	Caution! It does not detect all line. 
+	If you want to increase prediction rate, must refine codes to find local minimum 
+	*/
+
 	/* HoughLine Algorithm is more better performance in Binary Image*/
 	Image grayImage = getBinarization(image);
 
@@ -252,9 +255,11 @@ std::vector<imgctrl::LineParam> imgctrl::ImageController::getHoughLine(const Ima
 			}
 		}
 	}
-	auto isLocalMaximum = [&accumulation, &result, &num_rho, &num_ang](const size_t& rho, const size_t& ang, const int& range=5)->bool{
-		for (int i = -range; i <= range; i++) {
-			for (int j = -range; j <= range; j++) {
+
+	// I don't know where to place this function.... So just use lambda
+	auto isLocalMaximum = [&accumulation, &result, &num_rho, &num_ang](const size_t& rho, const size_t& ang, const int& rhoRange=10, const int& angRange=2)->bool{
+		for (int i = -rhoRange; i <= rhoRange; i++) {
+			for (int j = -angRange; j <= angRange; j++) {
 				if (i + rho < 0 || i + rho >= num_rho || j + ang < 0 || j + ang >= num_ang ) continue;
 				if (i == 0 && j == 0) continue;
 				if (accumulation[i + rho][j + ang] - accumulation[rho][ang] >= FLT_EPSILON) return false;
@@ -271,6 +276,7 @@ std::vector<imgctrl::LineParam> imgctrl::ImageController::getHoughLine(const Ima
 			}
 		}
 	}
+
 	return result;
 }
 
@@ -282,12 +288,95 @@ imgctrl::Image imgctrl::ImageController::getMarkedImage(const Image & original, 
 	for (std::pair<unsigned int, unsigned int> markPosition : markPositions) {
 		for (unsigned int dx = 0; dx < markSize && markPosition.first + dx < imgSize.first; dx++) {
 			for (unsigned int dy = 0; dy < markSize && markPosition.second + dy < imgSize.first; dy++) {
-				result[markPosition.first + dx][markPosition.second + dy].setRed(255);
-				result[markPosition.first + dx][markPosition.second + dy].setGreen(0);
-				result[markPosition.first + dx][markPosition.second + dy].setBlue(0);
+				result[markPosition.first + dx][markPosition.second + dy].setColor(255, 0, 0);
 			}
 		}
 	}
+	return result;
+}
+
+imgctrl::Image imgctrl::ImageController::getCompositiion(const Image & firstImage, const Image & secondImage) const
+{
+	auto firstSize = firstImage.getSize();
+	auto secondSize = secondImage.getSize();
+
+	assert(firstSize.first == secondSize.first);
+	assert(firstSize.second == secondSize.second);
+
+	Image result(firstSize);
+	for (unsigned int x = 0; x < firstSize.first; x++) {
+		for (unsigned int y = 0; y < firstSize.second; y++) {
+			int r, g, b;
+			r = firstImage[x][y].getRed() + secondImage[x][y].getRed();
+			g = firstImage[x][y].getGreen() + secondImage[x][y].getGreen();
+			b = firstImage[x][y].getBlue() + secondImage[x][y].getBlue();
+			r = std::min(255, std::max(0, r));
+			g = std::min(255, std::max(0, g));
+			b = std::min(255, std::max(0, b));
+			result[x][y].setColor(r, g, b);
+		}
+	}
+	return result;
+
+}
+
+imgctrl::Image imgctrl::ImageController::getLinedImage(const Image & original, const std::vector<imgctrl::LineParam>& lines) const
+{
+	Image result = original;
+	std::pair<size_t, size_t> imgSize = result.getSize();
+	for (auto line : lines) {
+		// Generate Random Color for this line
+		int r = rand() % 256;
+		int g = rand() % 256;
+		int b = rand() % 256;
+		
+		int x1 = 0;
+		int y1 = (int)floor(line.rho / cos(line.ang*M_PI / 180) + 0.5);
+		int x2 = imgSize.first - 1;
+		int y2 = (int)floor((line.rho - x2*sin(line.ang*M_PI / 180)) / cos(line.ang*M_PI / 180) + 0.5);
+
+		if (line.ang == 90) {
+			int x = (int)(line.rho + 0.5);
+			for (int y = 0; y < imgSize.second; y++) {
+				result[x][y].setColor(r, g, b);
+			}
+		}
+		else if (x1 == x2) {
+			if (y1 > y2) std::swap(y1, y2);
+			for (int y = y1; y <= y2; y++) {
+				result[x1][y].setColor(r, g, b);
+			}
+		}
+		else {
+			double m = (double)(y2 - y1) / (x2 - x1);
+			if (m > -1 && m < 1) {
+				if (x1 > x2) {
+					std::swap(x1, x2);
+					std::swap(y1, y2);
+				}
+				for (int x = x1; x <= x2; x++) {
+					int y = (int)floor(m*(x - x1) + y1 + 0.5);
+					if (y >= 0 && y < imgSize.second) {
+						result[x][y].setColor(r, g, b);
+					}
+				}
+			}
+			else {
+				if (y1 > y2) {
+					std::swap(x1, x2);
+					std::swap(y1, y2);
+				}
+				for (int y = y1; y <= y2; y++) {
+					int x = (int)floor((y - y1) / m + x1 + 0.5);
+					if (y >= 0 && y < imgSize.second) {
+						result[x][y].setColor(r, g, b);
+					}
+				}
+			}
+
+		}
+	}
+	
 	return result;
 }
 
@@ -373,9 +462,7 @@ imgctrl::Image::operator cv::Mat() const
 }
 
 imgctrl::Color::Color() {
-	setRed(0);
-	setGreen(0);
-	setBlue(0);
+	setColor(0, 0, 0);
 }
 
 imgctrl::Color::Color(const COLORDATA& r, const COLORDATA& g, const COLORDATA& b)
@@ -404,6 +491,13 @@ void imgctrl::Color::setBlue(const COLORDATA& b)
 	m_color[kBlueIdx] = b;
 }
 
+void imgctrl::Color::setColor(const COLORDATA & r, const COLORDATA & g, const COLORDATA & b)
+{
+	setRed(r);
+	setGreen(g);
+	setBlue(b);
+}
+
 BYTE imgctrl::Color::getRed() const
 {
 	return m_color[kRedIdx];
@@ -430,6 +524,7 @@ imgctrl::LineParam::LineParam(std::initializer_list<double> data)
 	this->rho = ptr[0];
 	this->ang = ptr[1];
 }
+
 
 imgctrl::LineParam::~LineParam()
 {
