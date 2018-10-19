@@ -7,41 +7,46 @@
 #include "opencv2/highgui/highgui.hpp"
 
 namespace imgctrl {
-	using COLORDATA = BYTE[3];
+	
+	using COLORDATA = BYTE;
+	using COLORBGR = COLORDATA[3];
 
 	class Color {
 	private:
-		COLORDATA m_color;
+		COLORBGR m_color;
+
+	public:
 
 		static const uint8_t kRedIdx = 2;
 		static const uint8_t kGreenIdx = 1;
 		static const uint8_t kBlueIdx = 0;
 
-	public:
 		Color();
-		Color(const BYTE& r, const BYTE& g, const BYTE& b);
+		Color(const COLORDATA& r, const COLORDATA& g, const COLORDATA& b);
 		~Color();
 
-		void setRed(BYTE r);
-		void setGreen(BYTE g);
-		void setBlue(BYTE b);
+		void setRed(const COLORDATA& r);
+		void setGreen(const COLORDATA& g);
+		void setBlue(const COLORDATA& b);
 
-		BYTE getRed() const;
-		BYTE getGreen() const;
-		BYTE getBlue() const;
+		COLORDATA getRed() const;
+		COLORDATA getGreen() const;
+		COLORDATA getBlue() const;
 	};
 
+	/* ==== !! Must Use load() to generate image */
 	class Image {
 	private:
 		std::vector< std::vector<Color> > m_image;
-		Image(const std::vector< std::vector<Color> >& image);
+		Image(const std::vector< std::vector<Color> >& image); 
 
 	public:
-		static Image load(const std::string& filename);
-		Image(std::pair<size_t, size_t> size);
+		static Image load(const std::string& filename); 
+		Image(const std::pair<size_t, size_t>& size);
 		~Image();
-		void save(const std::string& filename) const;
+		void save(const std::string& filename) const; // Not Implement
 
+		/* A return value's first is width and second is height */
 		std::pair<size_t, size_t> getSize() const;
 		size_t getHeight() const;
 		size_t getWidth() const;
@@ -51,6 +56,7 @@ namespace imgctrl {
 		operator cv::Mat() const;
 	};
 
+	/* For HoughLine method */
 	class LineParam {
 	public:
 		double rho;
@@ -61,18 +67,19 @@ namespace imgctrl {
 	};
 
 
+	// I don't care optimization and speed, So all control method is return data, not edit original data
 	class ImageController
 	{
 	private:
-		int threshold = 128;
-		BYTE binaryBlack = 0;
-		BYTE binaryWhite = 255;
+		int m_threshold = 128;
+		static const COLORDATA kBlackBinary = 0;
+		static const COLORDATA kWhiteBinary = 255;
 
 	public:
 		ImageController();
 		~ImageController();
 
-		BYTE getThreshold() const;
+		COLORDATA getThreshold() const;
 		void setThreshold(const int& threshold);
 
 		Image getBinarization(const Image& original) const;
