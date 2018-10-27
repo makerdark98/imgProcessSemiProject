@@ -435,12 +435,13 @@ imgctrl::Image imgctrl::Image::load(const std::string& filename)
 	const cv::Size size = cvImage.size();
 	std::vector< std::vector<Color> > data(size.width, std::vector<Color>(size.height));
 
+	uchar* pRawData = cvImage.data;
+
 	for (unsigned int i = 0; i < size.width; i++) {
 		for (unsigned int j = 0; j < size.height; j++) {
-			cv::Vec3b& currentColor = cvImage.at<cv::Vec3b>(cv::Point(i, j));
-			data[i][j].setRed(currentColor[Color::kRedIdx]);
-			data[i][j].setGreen(currentColor[Color::kGreenIdx]);
-			data[i][j].setBlue(currentColor[Color::kBlueIdx]);
+			data[i][j].setRed(pRawData[j*size.width*3+i*3+0]);
+			data[i][j].setGreen(pRawData[j*size.width*3+i*3+1]);
+			data[i][j].setBlue(pRawData[j*size.width*3+i*3+2]);
 		}
 	}
 
@@ -486,15 +487,13 @@ std::pair<size_t, size_t> imgctrl::Image::getSize() const
 imgctrl::Image::operator cv::Mat() const
 {
 	const std::pair<size_t, size_t> size = getSize();
-	cv::Size resultSize(size.first, size.second);
-	cv::Mat result(resultSize, CV_8UC3);
-
+	cv::Mat result(size.first, size.second, CV_8UC3);
+	uchar* data = result.data;
 	for (unsigned int i = 0; i < size.first; i++) {
 		for (unsigned int j = 0; j < size.second; j++) {
-			cv::Vec3b& currentColor = result.at<cv::Vec3b>(cv::Point(i, j));
-			currentColor[2] = m_image[i][j].getRed();
-			currentColor[1] = m_image[i][j].getGreen();
-			currentColor[0] = m_image[i][j].getBlue();
+			data[j*size.first*3 + i*3 + 0] = this->m_image[i][j].getBlue();
+			data[j*size.first*3 + i*3 + 1] = this->m_image[i][j].getGreen();
+			data[j*size.first*3 + i*3 + 2] = this->m_image[i][j].getRed();
 		}
 	}
 	return result;
