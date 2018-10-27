@@ -6,28 +6,36 @@
 
 using namespace cv;
 using namespace std;
-static int numOfDisplay=0;
 
+void displayImage(const string& windowName, const imgctrl::Image& image);
 bool isTriangle(const imgctrl::Image& image);
 int getNumOfEdges(const imgctrl::Image& image);
 
 int main(int argc, const char** argv) {
 	auto start = std::chrono::system_clock::now();
+	string answerSheet[4];
 	imgctrl::Image images[] = {
-		imgctrl::Image::load("C://1.jpg"),
-		imgctrl::Image::load("C://2.jpg"),
-		imgctrl::Image::load("C://3.jpg"),
-		imgctrl::Image::load("C://4.jpg"),
+		imgctrl::Image::load("C://1.jpg"), imgctrl::Image::load("C://2.jpg"),
+		imgctrl::Image::load("C://3.jpg"), imgctrl::Image::load("C://4.jpg"),
 	};
-	//imgctrl::Image image = imgctrl::Image::load("C://star.jpg");
 	for (int i = 0; i < 4; i++) {
 		images[i].resize({ 1000, 1000 });
-		cout << i+1 << ".jpg : " << (isTriangle(images[i]) ? "Triangle" : "Star") << endl;
+		answerSheet[i] = isTriangle(images[i]) ? "Triangle" : "Star";
 	}
 
 	auto end = std::chrono::system_clock::now();
-	chrono::duration<double> defaultSec = end - start;
-	cout << defaultSec.count() << endl;
+	chrono::duration<double> determiningTime = end - start;
+	cout << determiningTime.count() << endl;
+	start = end;
+
+	for (int i = 0; i < 4; i++) {
+		displayImage(std::to_string(i + 1) + ".jpg :" + answerSheet[i], images[i]);
+	}
+
+	end = std::chrono::system_clock::now();
+	chrono::duration<double> displayTime = end - start;
+	cout << displayTime.count() << endl;
+
 	waitKey(0);
 	return 0;
 }
@@ -55,14 +63,10 @@ int getNumOfEdges(const imgctrl::Image& image) {
 	// Detect lines
 	auto lines = imgController.getHoughLine(maskedImage);
 
-	// Draw lines and Display
-	auto displayImage = image;//imgController.getLinedImage(image, lines);
-	numOfDisplay++;
-	string windowName = std::to_string(numOfDisplay) + ".jpg";
-	namedWindow(windowName, WINDOW_NORMAL);
-	//namedWindow(windowName, WINDOW_AUTOSIZE);
-	imshow(windowName, Mat(displayImage));
-
 	return lines.size();
 }
 
+void displayImage(const string& windowName, const imgctrl::Image& image) {
+	namedWindow(windowName, WINDOW_NORMAL);
+	imshow(windowName, Mat(image));
+}
