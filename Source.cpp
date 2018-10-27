@@ -1,18 +1,34 @@
 ﻿#include <iostream>
+#include <chrono>
 #include "opencv2/core/core.hpp"
 #include "opencv2/highgui/highgui.hpp"
 #include "ImageController.h"
 
 using namespace cv;
 using namespace std;
+static int numOfDisplay=0;
 
 bool isTriangle(const imgctrl::Image& image);
 int getNumOfEdges(const imgctrl::Image& image);
 
 int main(int argc, const char** argv) {
-	imgctrl::Image image = imgctrl::Image::load("C://triangle.jpg");
+	auto start = std::chrono::system_clock::now();
+	imgctrl::Image images[] = {
+		imgctrl::Image::load("C://1.jpg"),
+		imgctrl::Image::load("C://2.jpg"),
+		imgctrl::Image::load("C://3.jpg"),
+		imgctrl::Image::load("C://4.jpg"),
+	};
 	//imgctrl::Image image = imgctrl::Image::load("C://star.jpg");
-	cout << (isTriangle(image)? "Triangle" : "Star") << endl;
+	for (int i = 0; i < 4; i++) {
+		images[i].resize({ 1000, 1000 });
+		cout << i+1 << ".jpg : " << (isTriangle(images[i]) ? "Triangle" : "Star") << endl;
+	}
+
+	auto end = std::chrono::system_clock::now();
+	chrono::duration<double> defaultSec = end - start;
+	cout << defaultSec.count() << endl;
+	waitKey(0);
 	return 0;
 }
 
@@ -33,26 +49,19 @@ int getNumOfEdges(const imgctrl::Image& image) {
 	imgctrl::Image maskedImage(image.getSize());
 	for (int i = 0; i < 4; i++){
 		auto tmpImage = imgController.getConvolution(image, filters[i]);
-		maskedImage = imgController.getCompositiion(maskedImage, tmpImage);
+		maskedImage = imgController.getComposition(maskedImage, tmpImage);
 	}
 
 	// Detect lines
 	auto lines = imgController.getHoughLine(maskedImage);
 
-	// for debug, print data of lines
-	/*
-	for (auto line : lines) {
-		cout << line.rho << " " << line.ang << endl;
-	}
-	*/
-
 	// Draw lines and Display
-	/*
-	auto displayImage = imgController.getLinedImage(image, lines);
-	namedWindow("Display", WINDOW_AUTOSIZE);
-	imshow("Display", Mat(displayImage));
-	waitKey(0);
-	*/
+	auto displayImage = image;//imgController.getLinedImage(image, lines);
+	numOfDisplay++;
+	string windowName = std::to_string(numOfDisplay) + ".jpg";
+	namedWindow(windowName, WINDOW_NORMAL);
+	//namedWindow(windowName, WINDOW_AUTOSIZE);
+	imshow(windowName, Mat(displayImage));
 
 	return lines.size();
 }

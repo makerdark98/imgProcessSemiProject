@@ -295,7 +295,7 @@ imgctrl::Image imgctrl::ImageController::getMarkedImage(const Image & original, 
 	return result;
 }
 
-imgctrl::Image imgctrl::ImageController::getCompositiion(const Image & firstImage, const Image & secondImage) const
+imgctrl::Image imgctrl::ImageController::getComposition(const Image & firstImage, const Image & secondImage) const
 {
 	auto firstSize = firstImage.getSize();
 	auto secondSize = secondImage.getSize();
@@ -378,6 +378,45 @@ imgctrl::Image imgctrl::ImageController::getLinedImage(const Image & original, c
 	}
 	
 	return result;
+}
+
+void imgctrl::Image::resize(const std::pair<size_t, size_t> size)
+{
+	Image result(size);
+	int x1, y1, x2, y2;
+	double rx, ry, p, q, tmpRed, tmpGreen, tmpBlue;
+	const std::pair<size_t, size_t>& originalSize = this->getSize();
+	if (size == originalSize) return;
+	const unsigned int& w = originalSize.first;
+	const unsigned int& h = originalSize.second;
+	const unsigned int& nw = size.first;
+	const unsigned int& nh = size.second;
+
+	for (int i = 0; i < nw; i++) {
+		for (int j = 0; j < nh; j++) {
+			rx = (double)w*i / nw;
+			ry = (double)h*j / nh;
+			
+			x1 = (int)rx;
+			y1 = (int)ry;
+			x2 = x1 + 1 == w ? w-1 : x1+1;
+			y2 = y1 + 1 == h ? h-1 : y1+1;
+
+			p = rx - x1;
+			q = ry - y1;
+			
+			tmpRed = (1. - p)*(1. - q)*m_image[x1][y1].getRed() + p*(1. - q)*m_image[x2][y1].getRed() + (1.-p)*m_image[x1][y2].getRed() + p*q*m_image[x2][y2].getRed();
+			tmpGreen = (1. - p)*(1. - q)*m_image[x1][y1].getGreen() + p*(1. - q)*m_image[x2][y1].getGreen() + (1.-p)*m_image[x1][y2].getGreen() + p*q*m_image[x2][y2].getGreen();
+			tmpBlue = (1. - p)*(1. - q)*m_image[x1][y1].getBlue() + p*(1. - q)*m_image[x2][y1].getBlue() + (1.-p)*m_image[x1][y2].getBlue() + p*q*m_image[x2][y2].getBlue();
+
+			tmpRed = std::min(255., std::max(0., tmpRed));
+			tmpGreen = std::min(255., std::max(0., tmpGreen));
+			tmpBlue = std::min(255., std::max(0., tmpBlue));
+
+			result.m_image[i][j].setColor(tmpRed, tmpGreen, tmpBlue);
+		}
+	}
+	*this = result;
 }
 
 imgctrl::Image::Image(const std::vector<std::vector<Color>> &image)

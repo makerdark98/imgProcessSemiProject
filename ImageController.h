@@ -48,6 +48,7 @@ namespace imgctrl {
 
 		/* A return value's first is width and second is height */
 		std::pair<size_t, size_t> getSize() const;
+		void resize(const std::pair<size_t, size_t> size);
 		size_t getHeight() const;
 		size_t getWidth() const;
 
@@ -88,8 +89,9 @@ namespace imgctrl {
 		Image getSharpening(const Image& original) const;
 		Image getGrayScale(const Image& original) const;
 		Image getConvolution(const Image& original, const std::vector<std::vector<double> > &filter) const;
-		Image getMarkedImage(const Image& original, const std::vector<std::pair<unsigned int, unsigned int> > &markPositions, const unsigned int& markSize = 5);
-		Image getCompositiion(const Image& firstImage, const Image& secondImage) const;
+		Image getMarkedImage(const Image& original, const std::vector<std::pair<unsigned int, unsigned int> > &markPositions,
+			const unsigned int& markSize = 5);
+		Image getComposition(const Image& firstImage, const Image& secondImage) const;
 		Image getLinedImage(const Image& original, const std::vector<imgctrl::LineParam>& lines) const;
 
 		std::vector< std::pair<unsigned int,unsigned int> > getHarrisCorner(const Image& image) const;
