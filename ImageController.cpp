@@ -197,7 +197,7 @@ std::vector<std::pair<unsigned int,unsigned int>> imgctrl::ImageController::getH
 		}
 	}
 
-	auto isLocalMaximum = [&crf, &result, &imgSize](const size_t& x, const size_t& y, const int& range=50)->bool{
+	auto isLocalMaximum = [&crf, &result, &imgSize](const size_t& x, const size_t& y, const int& range=5)->bool{
 		for (int i = -range; i <= range; i++) {
 			for (int j = -range; j <= range; j++) {
 				if (i + x < 0 || i + x >= imgSize.first || j + y < 0 || j + y >= imgSize.second) continue;
@@ -258,7 +258,7 @@ std::vector<imgctrl::LineParam> imgctrl::ImageController::getHoughLine(const Ima
 	}
 
 	// I don't know where to place this function.... So just use lambda
-	auto isLocalMaximum = [&accumulation, &result, &num_rho, &num_ang](const size_t& rho, const size_t& ang, const int& rhoRange=10, const int& angRange=2)->bool{
+	auto isLocalMaximum = [&accumulation, &result, &num_rho, &num_ang](const size_t& rho, const size_t& ang, const int& rhoRange=5, const int& angRange=5)->bool{
 		for (int i = -rhoRange; i <= rhoRange; i++) {
 			for (int j = -angRange; j <= angRange; j++) {
 				if (i + rho < 0 || i + (int)rho >= num_rho || j + (int)ang < 0 || j + (int)ang >= num_ang ) continue;
@@ -271,8 +271,8 @@ std::vector<imgctrl::LineParam> imgctrl::ImageController::getHoughLine(const Ima
 
 	for (m = 1; m < num_rho-1; m++) {
 		for (n = 0; n < num_ang-1; n++) {
-			if (accumulation[m][n] > m_threshold &&
-				isLocalMaximum(m, n) ) {
+			if (accumulation[m][n] > m_threshold)
+				if( isLocalMaximum(m, n) ) {
 				result.push_back({ (double)m - (num_rho / 2), (double)n*180.0 / num_ang });
 			}
 		}

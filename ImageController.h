@@ -105,6 +105,8 @@ namespace imgctrl {
 	class Point {
 	public:
 		double x, y;
+		Point() {};
+		Point(double a, double b) :x(a),y(b){}
 	};
 
 	class Matrix {
