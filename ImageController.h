@@ -29,6 +29,8 @@ namespace imgctrl {
 		void setBlue(const COLORDATA& b);
 		void setColor(const COLORDATA& r, const COLORDATA& g, const COLORDATA& b);
 
+		bool operator==(const Color& c) const;
+
 		COLORDATA getRed() const;
 		COLORDATA getGreen() const;
 		COLORDATA getBlue() const;
@@ -42,6 +44,7 @@ namespace imgctrl {
 
 	public:
 		static Image load(const std::string& filename); 
+		Image(const cv::Mat& cvImage);
 		Image(const std::pair<size_t, size_t>& size);
 		~Image();
 		void save(const std::string& filename) const; // Not Implement
@@ -98,4 +101,26 @@ namespace imgctrl {
 		std::vector< imgctrl::LineParam> getHoughLine(const Image& image) const;
 	};
 
+
+	class Point {
+	public:
+		double x, y;
+	};
+
+	class Matrix {
+	protected:
+	public:
+		std::vector<std::vector<double> > data;
+		Matrix(size_t row, size_t col);
+		Matrix(const Matrix& other);
+		Matrix operator+(const Matrix& other) const;
+		Matrix operator-(const Matrix& other) const;
+		Matrix operator*(const double& scala) const;
+		Matrix operator*(const Matrix& other) const;
+		virtual ~Matrix();
+	};
+
+	Matrix getPerspectiveMatrix(const std::vector<Point>& src, const std::vector<Point>& dst);
 }
+
+std::vector<double> gauss(std::vector< std::vector<double> > A);

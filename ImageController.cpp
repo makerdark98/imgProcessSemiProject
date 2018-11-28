@@ -1,4 +1,5 @@
 #include "ImageController.h"
+#include <iostream>
 #include "opencv2/imgproc/imgproc.hpp"
 #include "opencv2/core/core.hpp"
 #include "opencv2/highgui/highgui.hpp"
@@ -71,7 +72,7 @@ imgctrl::Image imgctrl::ImageController::getGrayScale(const Image & original) co
 			b = (float)result[i][j].getBlue();
 
 			float gray = std::min(255.f, std::max(0.f, 0.2126f * r + 0.7152f * g + 0.0722f * b));
-			result[i][j].setColor(gray, gray, gray);
+			result[i][j].setColor((COLORDATA)gray, (COLORDATA)gray, (COLORDATA)gray);
 		}
 	}
 
@@ -109,7 +110,7 @@ imgctrl::Image imgctrl::ImageController::getConvolution(const Image & original, 
 			g = std::min(255., std::max(0., g));
 			b = std::min(255., std::max(0., b));
 
-			result[i][j].setColor(r, g, b);
+			result[i][j].setColor((COLORDATA)r, (COLORDATA)g,(COLORDATA) b);
 		}
 	}
 	return result;
@@ -260,7 +261,7 @@ std::vector<imgctrl::LineParam> imgctrl::ImageController::getHoughLine(const Ima
 	auto isLocalMaximum = [&accumulation, &result, &num_rho, &num_ang](const size_t& rho, const size_t& ang, const int& rhoRange=10, const int& angRange=2)->bool{
 		for (int i = -rhoRange; i <= rhoRange; i++) {
 			for (int j = -angRange; j <= angRange; j++) {
-				if (i + rho < 0 || i + rho >= num_rho || j + ang < 0 || j + ang >= num_ang ) continue;
+				if (i + rho < 0 || i + (int)rho >= num_rho || j + (int)ang < 0 || j + (int)ang >= num_ang ) continue;
 				if (i == 0 && j == 0) continue;
 				if (accumulation[i + rho][j + ang] - accumulation[rho][ang] >= FLT_EPSILON) return false;
 			}
@@ -337,7 +338,7 @@ imgctrl::Image imgctrl::ImageController::getLinedImage(const Image & original, c
 
 		if (line.ang == 90) {
 			int x = (int)(line.rho + 0.5);
-			for (int y = 0; y < imgSize.second; y++) {
+			for (int y = 0; y < (int)imgSize.second; y++) {
 				result[x][y].setColor(r, g, b);
 			}
 		}
@@ -356,7 +357,7 @@ imgctrl::Image imgctrl::ImageController::getLinedImage(const Image & original, c
 				}
 				for (int x = x1; x <= x2; x++) {
 					int y = (int)floor(m*(x - x1) + y1 + 0.5);
-					if (y >= 0 && y < imgSize.second) {
+					if (y >= 0 && y < (int)imgSize.second) {
 						result[x][y].setColor(r, g, b);
 					}
 				}
@@ -368,7 +369,7 @@ imgctrl::Image imgctrl::ImageController::getLinedImage(const Image & original, c
 				}
 				for (int y = y1; y <= y2; y++) {
 					int x = (int)floor((y - y1) / m + x1 + 0.5);
-					if (y >= 0 && y < imgSize.second) {
+					if (y >= 0 && y < (int)imgSize.second) {
 						result[x][y].setColor(r, g, b);
 					}
 				}
@@ -387,13 +388,13 @@ void imgctrl::Image::resize(const std::pair<size_t, size_t> size)
 	double rx, ry, p, q, tmpRed, tmpGreen, tmpBlue;
 	const std::pair<size_t, size_t>& originalSize = this->getSize();
 	if (size == originalSize) return;
-	const unsigned int& w = originalSize.first;
-	const unsigned int& h = originalSize.second;
-	const unsigned int& nw = size.first;
-	const unsigned int& nh = size.second;
+	const size_t& w = originalSize.first;
+	const size_t& h = originalSize.second;
+	const size_t& nw = size.first;
+	const size_t& nh = size.second;
 
-	for (int i = 0; i < nw; i++) {
-		for (int j = 0; j < nh; j++) {
+	for (int i = 0; i < (int)nw; i++) {
+		for (int j = 0; j < (int)nh; j++) {
 			rx = (double)w*i / nw;
 			ry = (double)h*j / nh;
 			
@@ -413,7 +414,7 @@ void imgctrl::Image::resize(const std::pair<size_t, size_t> size)
 			tmpGreen = std::min(255., std::max(0., tmpGreen));
 			tmpBlue = std::min(255., std::max(0., tmpBlue));
 
-			result.m_image[i][j].setColor(tmpRed, tmpGreen, tmpBlue);
+			result.m_image[i][j].setColor((COLORDATA)tmpRed,(COLORDATA)tmpGreen,(COLORDATA)tmpBlue);
 		}
 	}
 	*this = result;
@@ -437,15 +438,31 @@ imgctrl::Image imgctrl::Image::load(const std::string& filename)
 
 	uchar* pRawData = cvImage.data;
 
-	for (unsigned int i = 0; i < size.width; i++) {
-		for (unsigned int j = 0; j < size.height; j++) {
-			data[i][j].setRed(pRawData[j*size.width*3+i*3+0]);
-			data[i][j].setGreen(pRawData[j*size.width*3+i*3+1]);
-			data[i][j].setBlue(pRawData[j*size.width*3+i*3+2]);
+	for (int j = 0; j < size.width; j++) {
+		for (int i = 0; i < size.height; i++) {
+			data[j][i].setRed(pRawData[i*size.width*3+j*3+2]);
+			data[j][i].setGreen(pRawData[i*size.width*3+j*3+1]);
+			data[j][i].setBlue(pRawData[i*size.width*3+j*3+0]);
 		}
 	}
 
 	return Image(data);
+}
+
+imgctrl::Image::Image(const cv::Mat & cvImage)
+{
+	const cv::Size size = cvImage.size();
+	m_image.assign(size.width, std::vector<Color>(size.height));
+
+	uchar* pRawData = cvImage.data;
+
+	for (int j = 0; j < size.width; j++) {
+		for (int i = 0; i < size.height; i++) {
+			m_image[j][i].setRed(pRawData[i*size.width*3+j*3+2]);
+			m_image[j][i].setGreen(pRawData[i*size.width*3+j*3+1]);
+			m_image[j][i].setBlue(pRawData[i*size.width*3+j*3+0]);
+		}
+	}
 }
 
 imgctrl::Image::Image(const std::pair<size_t, size_t>& size)
@@ -487,7 +504,7 @@ std::pair<size_t, size_t> imgctrl::Image::getSize() const
 imgctrl::Image::operator cv::Mat() const
 {
 	const std::pair<size_t, size_t> size = getSize();
-	cv::Mat result(size.first, size.second, CV_8UC3);
+	cv::Mat result(size.second, size.first, CV_8UC3);
 	uchar* data = result.data;
 	for (unsigned int i = 0; i < size.first; i++) {
 		for (unsigned int j = 0; j < size.second; j++) {
@@ -536,6 +553,15 @@ void imgctrl::Color::setColor(const COLORDATA & r, const COLORDATA & g, const CO
 	setBlue(b);
 }
 
+bool imgctrl::Color::operator==(const Color & c) const
+{
+	for (size_t i= 0; i < 3; i++) {
+		if (c.m_color[i] != m_color[i])
+			return false;
+	}
+	return true;
+}
+
 BYTE imgctrl::Color::getRed() const
 {
 	return m_color[kRedIdx];
@@ -566,4 +592,151 @@ imgctrl::LineParam::LineParam(std::initializer_list<double> data)
 
 imgctrl::LineParam::~LineParam()
 {
+}
+
+imgctrl::Matrix::Matrix(size_t row, size_t col)
+{
+	data.assign(row, std::vector<double>(col, 0));
+}
+
+imgctrl::Matrix::Matrix(const Matrix & other)
+{
+	data = other.data;
+}
+
+imgctrl::Matrix imgctrl::Matrix::operator+(const Matrix & other) const
+{
+	assert(data.size() == other.data.size());
+	if (data.size() != 0)
+		assert(data[0].size() == other.data[0].size());
+	Matrix result = *this;
+	for (size_t r = 0; r < data.size(); r++) {
+		for (size_t c = 0; c < data[r].size(); c++) {
+			result.data[r][c] += other.data[r][c];
+		}
+	}
+	return result;
+}
+
+imgctrl::Matrix imgctrl::Matrix::operator-(const Matrix & other) const
+{
+	assert(data.size() == other.data.size());
+	if (data.size() != 0)
+		assert(data[0].size() == other.data[0].size());
+	Matrix result = *this;
+	for (size_t r = 0; r < data.size(); r++) {
+		for (size_t c = 0; c < data[r].size(); c++) {
+			result.data[r][c] -= other.data[r][c];
+		}
+	}
+	return result;
+}
+
+imgctrl::Matrix imgctrl::Matrix::operator*(const double & scala) const
+{
+	Matrix result = *this;
+	for (size_t r = 0; r < data.size(); r++) {
+		for (size_t c = 0; c < data[r].size(); c++) {
+			result.data[r][c] *= scala;
+		}
+	}
+	return result;
+}
+
+imgctrl::Matrix imgctrl::Matrix::operator*(const Matrix & other) const
+{
+	assert(data[0].size() == other.data.size());
+	Matrix result(data.size(), other.data[0].size());
+	for (size_t i = 0; i < data.size(); i++) {
+		for (size_t j = 0; j < other.data[0].size(); j++) {
+			for (size_t k = 0; k < other.data.size(); k++) {
+				result.data[i][j] += data[i][k] * other.data[k][j];
+			}
+		}
+	}
+	return result;
+}
+
+
+imgctrl::Matrix::~Matrix() {
+
+}
+
+imgctrl::Matrix imgctrl::getPerspectiveMatrix(const std::vector<Point>& src, const std::vector<Point>& dst)
+{
+	Matrix M(3, 3);
+	std::vector<std::vector<double> > A(8, std::vector<double>(9,0));
+	std::vector<double> B(8,0);
+	for (size_t i = 0; i < 4; i++) {
+		A[i][0] = A[i + 4][3] = src[i].x;
+		A[i][1] = A[i + 4][4] = src[i].y;
+		A[i][2] = A[i + 4][5] = 1;
+		A[i][3] = A[i][4] = A[i][5] =
+			A[i + 4][0] = A[i + 4][1] = A[i + 4][2] = 0;
+		A[i][6] = -src[i].x*dst[i].x;
+		A[i][7] = -src[i].y*dst[i].x;
+		A[i + 4][6] = -src[i].x*dst[i].y;
+		A[i + 4][7] = -src[i].y*dst[i].y;
+		B[i] = dst[i].x;
+		B[i + 4] = dst[i].y;
+	}
+	for (int i = 0; i < 8; i++) {
+		A[i][8] = B[i];
+	}
+	auto X = gauss(A);
+	M.data[0][0] = X[0];
+	M.data[0][1] = X[1];
+	M.data[0][2] = X[2];
+	M.data[1][0] = X[3];
+	M.data[1][1] = X[4];
+	M.data[1][2] = X[5];
+	M.data[2][0] = X[6];
+	M.data[2][1] = X[7];
+	M.data[2][2] = 1;
+	return M;
+}
+std::vector<double> gauss(std::vector< std::vector<double> > A) {
+	int n = A.size();
+
+	for (int i = 0; i<n; i++) {
+		// Search for maximum in this column
+		double maxEl = abs(A[i][i]);
+		int maxRow = i;
+		for (int k = i + 1; k<n; k++) {
+			if (abs(A[k][i]) > maxEl) {
+				maxEl = abs(A[k][i]);
+				maxRow = k;
+			}
+		}
+
+		// Swap maximum row with current row (column by column)
+		for (int k = i; k<n + 1; k++) {
+			double tmp = A[maxRow][k];
+			A[maxRow][k] = A[i][k];
+			A[i][k] = tmp;
+		}
+
+		// Make all rows below this one 0 in current column
+		for (int k = i + 1; k<n; k++) {
+			double c = -A[k][i] / A[i][i];
+			for (int j = i; j<n + 1; j++) {
+				if (i == j) {
+					A[k][j] = 0;
+				}
+				else {
+					A[k][j] += c * A[i][j];
+				}
+			}
+		}
+	}
+
+	// Solve equation Ax=b for an upper triangular matrix A
+	std::vector<double> x(n);
+	for (int i = n - 1; i >= 0; i--) {
+		x[i] = A[i][n] / A[i][i];
+		for (int k = i - 1; k >= 0; k--) {
+			A[k][n] -= A[k][i] * x[i];
+		}
+	}
+	return x;
 }
