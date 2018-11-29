@@ -15,6 +15,7 @@ void sampleExtractMarker();
 int main(int argc, char** argv) {
 	imgctrl::ImageController imgController;
 	imgctrl::Image image = imgctrl::Image::load("c:\\2.jpg");
+	//image.resize({ 300, 300 });
 	cv::namedWindow("Original", cv::WINDOW_AUTOSIZE);
 	cv::imshow("Original", cv::Mat(image));
 	cv::namedWindow("Marker", cv::WINDOW_AUTOSIZE);
@@ -114,7 +115,7 @@ imgctrl::Image getMarkerImage(const imgctrl::Image & image)
 
 	// Use multiple mask and composite to detect all direction
 	imgctrl::Image maskedImage(image.getSize());
-	imgController.setThreshold(30);
+	imgController.setThreshold(80);
 	auto binaryImage = imgController.getBinarization(image);
 
 	// TO display
@@ -157,5 +158,5 @@ imgctrl::Image getMarkerImage(const imgctrl::Image & image)
 		QuadPoint markerPosition(corners[2], corners[3], corners[1], corners[0]);
 		return getInversePerspective(image, markerPosition);
 	}
-	return imgctrl::Image({ 0,0 });
+	return imgctrl::Image({ 1,1 });
 }
