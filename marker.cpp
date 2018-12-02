@@ -12,13 +12,17 @@ imgctrl::Point getIntersection(const imgctrl::LineParam& line0, const imgctrl::L
 imgctrl::Image getMarkerImage(const imgctrl::Image& image);
 void sampleExtractMarker();
 
+//#define DISPLAYMODE cv::WINDOW_AUTOSIZE
+#define DISPLAYMODE cv::WINDOW_NORMAL
+
 int main(int argc, char** argv) {
 	imgctrl::ImageController imgController;
-	imgctrl::Image image = imgctrl::Image::load("c:\\2.jpg");
+	imgctrl::Image image = imgctrl::Image::load("c:\\3.jpg");
 	//image.resize({ 300, 300 });
-	cv::namedWindow("Original", cv::WINDOW_AUTOSIZE);
+	//imgctrl::Image bluredImage = imgController.getBlur(image);
+	cv::namedWindow("Original", DISPLAYMODE);
 	cv::imshow("Original", cv::Mat(image));
-	cv::namedWindow("Marker", cv::WINDOW_AUTOSIZE);
+	cv::namedWindow("Marker", DISPLAYMODE);
 	cv::imshow("Marker", cv::Mat(getMarkerImage(image)));
 	cv::waitKey(0);
 	return 0;
@@ -45,13 +49,13 @@ void sampleExtractMarker() {
 
 	auto cvImage = cv::imread("C:\\2.jpg", CV_LOAD_IMAGE_COLOR);
 	auto cvResult = getInversePerspective(cvImage, inputQuad); // cvImage will be clone into imgctrl::Image object
-	cv::namedWindow("OPENCV", cv::WINDOW_AUTOSIZE);
+	cv::namedWindow("OPENCV", DISPLAYMODE);
 	cv::imshow("OPENCV", cv::Mat(cvResult));
 
 	// recommend
 	imgctrl::Image image = imgctrl::Image::load("C:\\2.jpg");
 	auto result = getInversePerspective(image, inputQuad);
-	cv::namedWindow("Custom", cv::WINDOW_AUTOSIZE);
+	cv::namedWindow("Custom", DISPLAYMODE);
 	cv::imshow("Custom", cv::Mat(result));
 	cv::waitKey(0);
 }
@@ -119,7 +123,7 @@ imgctrl::Image getMarkerImage(const imgctrl::Image & image)
 	auto binaryImage = imgController.getBinarization(image);
 
 	// TO display
-	cv::namedWindow("binary", cv::WINDOW_AUTOSIZE);
+	cv::namedWindow("binary", DISPLAYMODE);
 	cv::imshow("binary", cv::Mat(binaryImage));
 
 	for (int i = 0; i < 4; i++){
@@ -128,7 +132,7 @@ imgctrl::Image getMarkerImage(const imgctrl::Image & image)
 	}
 
 	// TO display
-	cv::namedWindow("masked", cv::WINDOW_AUTOSIZE);
+	cv::namedWindow("masked", DISPLAYMODE);
 	cv::imshow("masked", cv::Mat(maskedImage));
 
 	// Detect lines
@@ -137,7 +141,7 @@ imgctrl::Image getMarkerImage(const imgctrl::Image & image)
 
 	// TO display
 	maskedImage = imgController.getLinedImage(maskedImage, lines);
-	cv::namedWindow("line", cv::WINDOW_AUTOSIZE);
+	cv::namedWindow("line", DISPLAYMODE);
 	cv::imshow("line", cv::Mat(maskedImage));
 
 	vector<imgctrl::Point> corners;

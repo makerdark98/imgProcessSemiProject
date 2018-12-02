@@ -42,9 +42,13 @@ imgctrl::Image imgctrl::ImageController::getBinarization(const Image & original)
 imgctrl::Image imgctrl::ImageController::getBlur(const Image & original) const
 {
 	const std::vector<std::vector<double> > filter = {
-		{1./9, 1./9, 1./9},
+		{1./25, 1./25, 1./25, 1./25, 1./25},
 		{1./9, 1./9, 1./9},
 		{1./9, 1./9, 1./9}
+		{1./25, 1./25, 1./25, 1./25, 1./25},
+		{1./25, 1./25, 1./25, 1./25, 1./25},
+		{1./25, 1./25, 1./25, 1./25, 1./25},
+		{1./25, 1./25, 1./25, 1./25, 1./25}
 	};
 	return getConvolution(original, filter);
 }
@@ -269,14 +273,21 @@ std::vector<imgctrl::LineParam> imgctrl::ImageController::getHoughLine(const Ima
 		return true;
 	};
 
+
+	std::vector<std::pair<LineParam, int> > tmp;
 	for (m = 1; m < num_rho-1; m++) {
 		for (n = 0; n < num_ang-1; n++) {
 			if (accumulation[m][n] > m_threshold)
-				if( isLocalMaximum(m, n) ) {
-				result.push_back({ (double)m - (num_rho / 2), (double)n*180.0 / num_ang });
+				if (isLocalMaximum(m, n)) {
+					tmp.push_back({{ (double)m - (num_rho / 2), (double)n*180.0 / num_ang }, accumulation[m][n]});
 			}
 		}
 	}
+	sort(tmp.begin(), tmp.end(), [](const std::pair<LineParam, int>& a, std::pair<LineParam, int>& b)->bool {
+		return a.second > b.second;
+	});
+	for (size_t i = 0; i < 4; i++)
+		result.push_back(tmp[i].first);
 
 	return result;
 }
